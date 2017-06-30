@@ -96,23 +96,11 @@ var delay = averageDelay + (Math.random() -0.5) * spreadInDelay;
         //var statusId=tweets[i].id_str;
 
        // setInterval(getretweetedUserIdsByStatusId, delay,statusId);
-        //var retweeteduserIds=getretweetedUserIdsByStatusId(statusId);
+        var retweeteduserIds=getretweetedUserIdsByStatusId(statusId);
         //getretweetedUserIdsByStatusId(statusId);
 
 
 
-        var params2={
-                id:tweets[j].id_str,
-                count:10
-                    }
-
-        T.get('statuses/retweeters/ids',params2, function(error, userID, response){
-        if (!error) {
-          console.log(userID.ids+"statusID "+params2.id); // return the tweets to the API user
-              } else {
-            console.error('An error occurred!'+error); //error handling
-        }
-        });
 
 
 
