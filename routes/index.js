@@ -5,6 +5,7 @@ var fs = require('fs'),
 var http = require('http');
 var server = http.createServer(app);
 var request=require('request');
+var async = require('async');
 
 
 var Twit=require('twit');//we can get this package details from www.npmjs.com
@@ -57,98 +58,135 @@ var delay = averageDelay + (Math.random() -0.5) * spreadInDelay;
     
     var tweets=data;
 
-   
-    
-    for(var i=0;i<tweets.length;i++){
-      var tweetData={};
-        
-       
-      var hts=[];
-         var htLength=tweets[i].entities.hashtags.length;
-         if(htLength!=0)
-         {
-           for(var j=0;j<htLength;j++)
-           {
-              var htValue=tweets[i].entities.hashtags[j].text;
-              hts.push(htValue);
-           }
-          
-         }
-         else{
-           hts.push("none");
-         }
+   var statusId=[];
+   GetNextData(data,0,function(){
+     console.log("Finished");
+   }
+   )
 
-          var userMentionArray=[];
-        usersMentionsLength=tweets[i].entities.user_mentions.length;
+    function GetNextData(tweets,index,succes)
+    {
+        if(tweets.length==index)
+        {
+          succes();
+          return;
+        }
+            
+        //  var hts=[];
+        //  var htLength=tweets[index].entities.hashtags.length;
+        //  if(htLength!=0)
+        //  {//
+        //    for(var j=0;j<htLength;j++)
+        //    {
+        //       var htValue=tweets[index].entities.hashtags[j].text;
+        //       hts.push(htValue);
+        //    }
+          
+        //  }
+         
+
+        var userMentionArray=[];
+        usersMentionsLength=tweets[index].entities.user_mentions.length;
         if(usersMentionsLength!=0)
         {
           for(k=0;k<usersMentionsLength;k++)
           {
-            var um=tweets[i].entities.user_mentions[k].name
+            var um=tweets[index].entities.user_mentions[k].name
             userMentionArray.push(um);
           }
         }
-        else
+        var statusId=tweets[index].id_str;
+
+       getretweetedUserIdsByStatusId(statusId,function(data){
+         
+         console.log(tweets[index].text);
+         for(m=0;m<data.length;m++)
+          {
+           console.log(data[m].name);
+          }
+          console.log("-------");
+         index++;
+        GetNextData(tweets,index,succes)
+       },function(){
+         Console.log("failed")
+         index++;
+        GetNextData(tweets,index,succes)
+
+       });
+
+    }
+    function getretweetedUserIdsByStatusId(stId,succes,fail)
+    {
+      
+      var uids;
+      T.get('statuses/retweeters/ids', {id:stId,count:10 },
+      function(error, userIds, response)
+      {
+        if (!error) 
+        { 
+          getNextUserdata(userIds,0,function(result){
+            succes(result);
+          })
+          
+        }
+        else 
         {
-          userMentionArray.push("no user mentions");
+          succes();
         }
 
-        //var statusId=tweets[i].id_str;
-
-       // setInterval(getretweetedUserIdsByStatusId, delay,statusId);
-        var retweeteduserIds=getretweetedUserIdsByStatusId(statusId);
-        //getretweetedUserIdsByStatusId(statusId);
-
-
-
-
-
-
-        console.log("");
-
-
-
-        tweetData.createdAt=tweets[i].created_at;
-        tweetData.tweet=tweets[i].text;
-        tweetData.hashtags=hts;
-        tweetData.userMentions=userMentionArray;
-        
-
-		tweetArray.push(tweetData)
+      });
     }
-   
+    function getNextUserdata(userIds,index,sucss,users)
+    {
+      if(!users)
+          users=[];
+      if(userIds.ids.length==index)
+      {
+        sucss(users);
+      }
+            
+        //write here apii and increment index
+        usrId=userIds.ids[index];//error verunnu
+      
+        getUserDetailssByUserId(usrId,function(data){
+      
+          
+          users.push(data);
+         index++;
+        getNextUserdata(userIds,index,sucss,users)
+       },function(){
+        
+         index++;
+        getNextUserdata(userIds,index,sucss,users)
 
-//	console.log(tweetArray);
-res1.render('tweets',{tweetItems:tweetArray});
+       });
 
+       function getUserDetailssByUserId(uId,succes,fail)
+       {
+        T.get('users/show', {user_id:uId},
+        function(error, users, response)
+        {
+        if (!error) 
+        { 
+        
+          
+          succes(users);
+          
+        }
+        else 
+        {
+         
+          fail();
+        }
+
+      });
+    }
+        
+          
+    }
   
  }
 	
-}
-
-function getretweetedUserIdsByStatusId(stId)
-{
-  
-  var uids;
-  T.get('statuses/retweeters/ids', {id:stId,count:10 },gotData2);
-
-  function gotData2(error, userIds, response)
-  {
-    uids= userIds;
-  if (!error) {
-
-    console.log(userIds.ids+"  for the status"+stId);// return the tweets to the API user
-    
-    
-  } else {
-   console.error('An error occurred!'+error); //error handling
-   return error;
-  }
-  
-}
-console.log(uids);
-//console.log(uids)
-//return uids;
 }
 
 
