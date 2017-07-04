@@ -8,6 +8,18 @@ var request=require('request');
 var async = require('async');
 
 
+var kafka = require('kafka-node')
+var Producer = kafka.Producer
+var client = new kafka.Client("localhost:2181/")
+
+var twitterTopic = "twitter";
+    KeyedMessage = kafka.KeyedMessage,
+    producer = new Producer(client),
+    km = new KeyedMessage('key', 'message'),
+    countryProducerReady = false;
+
+
+
 var Twit=require('twit');//we can get this package details from www.npmjs.com
 var T = new Twit({
   consumer_key:         'q7jSHVoUPF655tBLSF4MMKKn6',
@@ -42,7 +54,7 @@ function getTweet(ky,res1){
 
 	var params={
     screen_name:ky,
-    count:5
+    count:20
 }
 
 T.get("statuses/user_timeline",params,gotData);
@@ -62,7 +74,7 @@ var delay = averageDelay + (Math.random() -0.5) * spreadInDelay;
    GetNextData(data,0,function(){
      console.log("Finished");
    }
-   )
+   )}
 
     function GetNextData(tweets,index,succes)
     {
@@ -71,19 +83,6 @@ var delay = averageDelay + (Math.random() -0.5) * spreadInDelay;
           succes();
           return;
         }
-            
-        //  var hts=[];
-        //  var htLength=tweets[index].entities.hashtags.length;
-        //  if(htLength!=0)
-        //  {//
-        //    for(var j=0;j<htLength;j++)
-        //    {
-        //       var htValue=tweets[index].entities.hashtags[j].text;
-        //       hts.push(htValue);
-        //    }
-          
-        //  }
-         
 
         var userMentionArray=[];
         usersMentionsLength=tweets[index].entities.user_mentions.length;
@@ -94,17 +93,49 @@ var delay = averageDelay + (Math.random() -0.5) * spreadInDelay;
             var um=tweets[index].entities.user_mentions[k].name
             userMentionArray.push(um);
           }
+          for(var i=0;i<usersMentionsLength;i++)
+          {
+              console.log("users mentioned are"+userMentionArray[i])
+          }
+          
         }
         var statusId=tweets[index].id_str;
 
        getretweetedUserIdsByStatusId(statusId,function(data){
          
-         console.log(tweets[index].text);
+         var dataToKafka={};
+         
+         
+         //console.log(tweets[index].text);
+         var usrs=[];
          for(m=0;m<data.length;m++)
           {
-           console.log(data[m].name);
+            usrs.push(data[m].name);
           }
+          dataToKafka.statuss=tweets[index].text;
+          dataToKafka.retweetwdUsers=usrs;
+          console.log(dataToKafka);
           console.log("-------");
+          doKafka(dataToKafka,function(payloads){
+            producer.send(payloads, function (err, loadeddata) {
+          console.log(loadeddata);
+          console.log(payloads);
+          console.log("");
+          });
+
+          });
+
+
+          function doKafka(dataToKafka,addData)
+          {
+             KeyedMessage = kafka.KeyedMessage,
+          twitterKM = new KeyedMessage(dataToKafka.code, JSON.stringify(dataToKafka)),
+          payloads = [
+                      { topic: twitterTopic, messages: twitterKM, partition: 0 },
+                     ];
+          
+          addData(payloads);
+          }   
          index++;
         GetNextData(tweets,index,succes)
        },function(){
@@ -119,7 +150,7 @@ var delay = averageDelay + (Math.random() -0.5) * spreadInDelay;
     {
       
       var uids;
-      T.get('statuses/retweeters/ids', {id:stId,count:10 },
+      T.get('statuses/retweeters/ids', {id:stId,count:20 },
       function(error, userIds, response)
       {
         if (!error) 
@@ -130,7 +161,7 @@ var delay = averageDelay + (Math.random() -0.5) * spreadInDelay;
           
         }
         else 
-        {
+        {console.log(error.message);
           succes();
         }
 
@@ -146,7 +177,7 @@ var delay = averageDelay + (Math.random() -0.5) * spreadInDelay;
       }
             
         //write here apii and increment index
-        usrId=userIds.ids[index];//error verunnu
+        usrId=userIds.ids[index];
       
         getUserDetailssByUserId(usrId,function(data){
       
@@ -158,7 +189,6 @@ var delay = averageDelay + (Math.random() -0.5) * spreadInDelay;
         
          index++;
         getNextUserdata(userIds,index,sucss,users)
-
        });
 
        function getUserDetailssByUserId(uId,succes,fail)
@@ -168,13 +198,11 @@ var delay = averageDelay + (Math.random() -0.5) * spreadInDelay;
         {
         if (!error) 
         { 
-        
-          
           succes(users);
           
         }
         else 
-        {
+        {//console.log(error.message+" user id "+uId);
          
           fail();
         }
@@ -185,7 +213,7 @@ var delay = averageDelay + (Math.random() -0.5) * spreadInDelay;
           
     }
   
- }
+ 
 	
 }
 
