@@ -113,6 +113,7 @@ var delay = averageDelay + (Math.random() -0.5) * spreadInDelay;
             usrs.push(data[m].name);
           }
           dataToKafka.statuss=tweets[index].text;
+          dataToKafka.statussId=tweets[index].id;
           dataToKafka.retweetwdUsers=usrs;
           console.log(dataToKafka);
           console.log("-------");
@@ -128,6 +129,7 @@ var delay = averageDelay + (Math.random() -0.5) * spreadInDelay;
 
           function doKafka(dataToKafka,addData)
           {
+             
              KeyedMessage = kafka.KeyedMessage,
           twitterKM = new KeyedMessage(dataToKafka.code, JSON.stringify(dataToKafka)),
           payloads = [
