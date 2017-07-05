@@ -110,10 +110,10 @@ var delay = averageDelay + (Math.random() -0.5) * spreadInDelay;
          var usrs=[];
          for(m=0;m<data.length;m++)
           {
-            usrs.push(data[m].name);
+            usrs.push(encodeURIComponent(data[m].name));
           }
-          dataToKafka.statuss=tweets[index].text;
-          dataToKafka.statussId=tweets[index].id;
+          dataToKafka.statuss=encodeURIComponent(tweets[index].text);
+          dataToKafka.statussId=tweets[index].id+"";
           dataToKafka.retweetwdUsers=usrs;
           console.log(dataToKafka);
           console.log("-------");
@@ -131,7 +131,7 @@ var delay = averageDelay + (Math.random() -0.5) * spreadInDelay;
           {
              
              KeyedMessage = kafka.KeyedMessage,
-          twitterKM = new KeyedMessage(dataToKafka.code, JSON.stringify(dataToKafka)),
+          twitterKM = new KeyedMessage(dataToKafka.statussId, JSON.stringify(dataToKafka)),
           payloads = [
                       { topic: twitterTopic, messages: twitterKM, partition: 0 },
                      ];
